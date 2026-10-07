@@ -1,107 +1,263 @@
 # Multi-Tenant Task Management API
 
-A RESTful JSON API for managing tasks in a multi-tenant setup. Every user belongs to a company, and a user can only see and manage tasks that belong to their own company. Authentication is handled by Laravel Sanctum (personal access tokens).
+A RESTful JSON API for managing tasks in a **multi-tenant environment** using Laravel 12 and Laravel Sanctum.
+
+Each user belongs to a company, and users can only view and manage tasks that belong to their own company.
+
+Authentication is handled using **Laravel Sanctum Personal Access Tokens**.
+
+---
+
+## Tech Stack
+
+* PHP 8.2+
+* Laravel 12
+* Laravel Sanctum 4
+* MySQL 8.0+ / MariaDB 10.6+
+* RESTful JSON API
+* Eloquent ORM
+* Form Requests
+* API Resources
+* Service Layer
+
+---
 
 ## Requirements
 
-- PHP 8.2 or higher (with the `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json` extensions)
-- Composer 2
-- MySQL 8.0+ (or MariaDB 10.6+)
-- Laravel 12 / Laravel Sanctum 4
+Before installing the project, make sure you have:
 
-## Installation
+* PHP 8.2 or higher
+* Composer 2
+* MySQL 8.0+ or MariaDB 10.6+
+* Required PHP extensions:
+
+  * `pdo_mysql`
+  * `mbstring`
+  * `openssl`
+  * `tokenizer`
+  * `xml`
+  * `ctype`
+  * `json`
+
+---
+
+# Installation
+
+Clone the repository and install the dependencies:
 
 ```bash
 composer install
+```
+
+Create the environment file:
+
+```bash
 cp .env.example .env
+```
+
+Generate the application key:
+
+```bash
 php artisan key:generate
 ```
 
-## Environment configuration
+---
 
-Open `.env` and set the database connection:
+# Environment Configuration
+
+Open the `.env` file and configure your database:
 
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=task
+DB_DATABASE=task_management
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Optional: set `SANCTUM_TOKEN_EXPIRATION` (in minutes) to make tokens expire. By default tokens do not expire.
+### Optional Sanctum Configuration
 
-## Database setup
+You can configure token expiration using:
 
-Create an empty database, then run the migrations:
+```env
+SANCTUM_TOKEN_EXPIRATION=60
+```
+
+The value is specified in minutes.
+
+If `SANCTUM_TOKEN_EXPIRATION` is not configured, tokens do not expire.
+
+---
+
+# Database Setup
+
+Create an empty database:
+
+```sql
+CREATE DATABASE task_management
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+```
+
+Or using MySQL CLI:
 
 ```bash
 mysql -u root -e "CREATE DATABASE task_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+```
+
+Run the migrations:
+
+```bash
 php artisan migrate
 ```
 
-Migrations create the `companies`, `users` (with `company_id` and `role`), `tasks` and `personal_access_tokens` tables.
+The migrations create:
 
-## Sanctum setup
+* `companies`
+* `users`
+* `tasks`
+* `personal_access_tokens`
 
-Sanctum is already installed and configured:
+The `users` table includes:
 
-- The `personal_access_tokens` migration is included in `database/migrations`.
-- `App\Models\User` uses the `HasApiTokens` trait.
-- `routes/api.php` is registered in `bootstrap/app.php`.
-- Task routes are protected by the `auth:sanctum` middleware.
+* `company_id`
+* `role`
 
-Clients authenticate with a Bearer token returned by `POST /api/login`.
+---
 
-## Running the project
+# Sanctum Authentication
+
+Laravel Sanctum is already configured.
+
+The project includes:
+
+* `HasApiTokens` on the `User` model
+* Sanctum personal access token migration
+* `auth:sanctum` middleware
+* API routes registered in `bootstrap/app.php`
+
+Authenticated requests must include:
+
+```http
+Authorization: Bearer <token>
+```
+
+---
+
+# Running the Project
+
+Start the Laravel development server:
 
 ```bash
 php artisan serve
 ```
 
-The API is available at `http://localhost:8000/api`.
+The API will be available at:
 
-### Creating the first companies and users
-
-The project ships without seeders, so create your initial data with Tinker (`php artisan tinker`):
-
-```php
-$a = App\Models\Company::create(['name' => 'Company A']);
-$b = App\Models\Company::create(['name' => 'Company B']);
-
-App\Models\User::create(['company_id' => $a->id, 'name' => 'Alice', 'email' => 'alice@company-a.test', 'password' => 'secret123', 'role' => 'admin']);
-App\Models\User::create(['company_id' => $a->id, 'name' => 'Adam', 'email' => 'adam@company-a.test', 'password' => 'secret123', 'role' => 'user']);
-App\Models\User::create(['company_id' => $b->id, 'name' => 'Bella', 'email' => 'bella@company-b.test', 'password' => 'secret123', 'role' => 'manager']);
-App\Models\User::create(['company_id' => $b->id, 'name' => 'Ben', 'email' => 'ben@company-b.test', 'password' => 'secret123', 'role' => 'user']);
+```text
+http://localhost:8000/api
 ```
 
-Passwords are hashed automatically by the model.
+---
 
-## API endpoints
+# Creating Initial Users
 
-| Method    | Endpoint           | Auth | Description                       |
-|-----------|--------------------|------|-----------------------------------|
-| POST      | `/api/login`       | No   | Log in and receive a token        |
-| GET       | `/api/tasks`       | Yes  | List the company's tasks          |
-| POST      | `/api/tasks`       | Yes  | Create a task                     |
-| GET       | `/api/tasks/{id}`  | Yes  | Show a task                       |
-| PUT/PATCH | `/api/tasks/{id}`  | Yes  | Update a task                     |
-| DELETE    | `/api/tasks/{id}`  | Yes  | Delete a task                     |
+The project does not include seeders.
 
-Send `Accept: application/json` and, for authenticated routes, `Authorization: Bearer <token>`.
+You can create the initial companies and users using Laravel Tinker:
 
-## Authentication
+```bash
+php artisan tinker
+```
 
-### Login
+Then run:
+
+```php
+$a = App\Models\Company::create([
+    'name' => 'Company A'
+]);
+
+$b = App\Models\Company::create([
+    'name' => 'Company B'
+]);
+
+App\Models\User::create([
+    'company_id' => $a->id,
+    'name' => 'Alice',
+    'email' => 'alice@company-a.test',
+    'password' => 'secret123',
+    'role' => 'admin',
+]);
+
+App\Models\User::create([
+    'company_id' => $a->id,
+    'name' => 'Adam',
+    'email' => 'adam@company-a.test',
+    'password' => 'secret123',
+    'role' => 'user',
+]);
+
+App\Models\User::create([
+    'company_id' => $b->id,
+    'name' => 'Bella',
+    'email' => 'bella@company-b.test',
+    'password' => 'secret123',
+    'role' => 'manager',
+]);
+
+App\Models\User::create([
+    'company_id' => $b->id,
+    'name' => 'Ben',
+    'email' => 'ben@company-b.test',
+    'password' => 'secret123',
+    'role' => 'user',
+]);
+```
+
+Passwords are automatically hashed by the `User` model.
+
+---
+
+# API Endpoints
+
+| Method    | Endpoint          | Authentication | Description                         |
+| --------- | ----------------- | -------------- | ----------------------------------- |
+| POST      | `/api/login`      | No             | Authenticate user and receive token |
+| GET       | `/api/tasks`      | Yes            | List company tasks                  |
+| POST      | `/api/tasks`      | Yes            | Create a task                       |
+| GET       | `/api/tasks/{id}` | Yes            | Show a task                         |
+| PUT/PATCH | `/api/tasks/{id}` | Yes            | Update a task                       |
+| DELETE    | `/api/tasks/{id}` | Yes            | Delete a task                       |
+
+All API requests should include:
+
+```http
+Accept: application/json
+```
+
+Authenticated requests must also include:
+
+```http
+Authorization: Bearer <token>
+```
+
+---
+
+# Authentication
+
+## Login
+
+### Request
 
 ```bash
 curl -X POST http://localhost:8000/api/login \
-  -H "Accept: application/json" -H "Content-Type: application/json" \
-  -d '{"email": "alice@company-a.test", "password": "secret123"}'
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@company-a.test","password":"secret123"}'
 ```
 
-Response `200`:
+### Successful Response — 200
 
 ```json
 {
@@ -121,20 +277,36 @@ Response `200`:
 }
 ```
 
-Wrong credentials return `401` with `{"success": false, "message": "Invalid credentials."}`.
+### Invalid Credentials — 401
 
-## Example requests and responses
+```json
+{
+    "success": false,
+    "message": "Invalid credentials."
+}
+```
 
-### Create a task
+---
+
+# Task Management
+
+## Create Task
 
 ```bash
 curl -X POST http://localhost:8000/api/tasks \
-  -H "Accept: application/json" -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
-  -d '{"title": "Redesign website", "description": "New landing page", "priority": "high", "due_date": "2026-11-01", "assigned_to": 2}'
+  -d '{
+    "title": "Redesign website",
+    "description": "New landing page",
+    "priority": "high",
+    "due_date": "2026-11-01",
+    "assigned_to": 2
+  }'
 ```
 
-Response `201`:
+### Response — 201 Created
 
 ```json
 {
@@ -161,33 +333,74 @@ Response `201`:
 }
 ```
 
-`status` defaults to `pending` and `priority` defaults to `medium` when omitted. `company_id` is never read from the request.
+### Default Values
 
-### List tasks
+If omitted:
+
+```text
+status   → pending
+priority → medium
+```
+
+The `company_id` is always taken from the authenticated user.
+
+The client cannot provide or override `company_id`.
+
+---
+
+# List Tasks
 
 ```bash
 curl "http://localhost:8000/api/tasks?search=website&status=in_progress&priority=high&sort=due_date&per_page=10" \
-  -H "Accept: application/json" -H "Authorization: Bearer <token>"
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer <token>"
 ```
 
-| Parameter   | Description                                                        |
-|-------------|--------------------------------------------------------------------|
-| `search`    | Partial match on the task title                                    |
-| `status`    | `pending`, `in_progress` or `completed`                            |
-| `priority`  | `low`, `medium` or `high`                                          |
-| `sort`      | `created_at`, `due_date`, `priority` or `status`                   |
-| `direction` | `asc` or `desc` (default: `asc` when `sort` is given, otherwise newest first) |
-| `per_page`  | 1 to 100 (default 15)                                              |
-| `page`      | Page number                                                        |
+### Query Parameters
 
-Response `200`:
+| Parameter   | Description                                    |
+| ----------- | ---------------------------------------------- |
+| `search`    | Partial match against task title               |
+| `status`    | `pending`, `in_progress`, `completed`          |
+| `priority`  | `low`, `medium`, `high`                        |
+| `sort`      | `created_at`, `due_date`, `priority`, `status` |
+| `direction` | `asc` or `desc`                                |
+| `per_page`  | Number of results per page, from 1 to 100      |
+| `page`      | Page number                                    |
+
+### Defaults
+
+```text
+per_page  → 15
+direction → asc when sorting is specified
+direction → newest first otherwise
+```
+
+### Response — 200 OK
 
 ```json
 {
     "success": true,
     "message": "Tasks retrieved successfully.",
     "data": [
-        { "id": 1, "title": "Redesign website", "status": "in_progress", "priority": "high" }
+        {
+            "id": 1,
+            "company_id": 1,
+            "title": "Redesign website",
+            "description": "New landing page",
+            "status": "in_progress",
+            "priority": "high",
+            "due_date": "2026-11-01",
+            "completed_at": null,
+            "assigned_to": 2,
+            "assigned_user": {
+                "id": 2,
+                "name": "Adam",
+                "email": "adam@company-a.test"
+            },
+            "created_at": "2026-10-07T10:00:00+00:00",
+            "updated_at": "2026-10-07T10:00:00+00:00"
+        }
     ],
     "meta": {
         "current_page": 1,
@@ -198,81 +411,547 @@ Response `200`:
 }
 ```
 
-(Each item in `data` contains the full task object shown above; it is shortened here.)
+---
 
-### Update a task
+# Show Task
+
+```http
+GET /api/tasks/{id}
+```
+
+The task must belong to the authenticated user's company.
+
+If the task belongs to another company, the API returns:
+
+```http
+404 Not Found
+```
+
+This prevents exposing the existence of resources belonging to another tenant.
+
+---
+
+# Update Task
 
 ```bash
 curl -X PATCH http://localhost:8000/api/tasks/1 \
-  -H "Accept: application/json" -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
-  -d '{"status": "completed"}'
+  -d '{"status":"completed"}'
 ```
 
-Response `200` with `"message": "Task updated successfully."` and `completed_at` filled in.
+### Response — 200 OK
 
-### Delete a task
+```json
+{
+    "success": true,
+    "message": "Task updated successfully.",
+    "data": {
+        "...": "updated task"
+    }
+}
+```
+
+When a task becomes `completed`, `completed_at` is automatically set by the server.
+
+The client cannot control `completed_at`.
+
+---
+
+# Delete Task
 
 ```bash
 curl -X DELETE http://localhost:8000/api/tasks/1 \
-  -H "Accept: application/json" -H "Authorization: Bearer <token>"
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer <token>"
 ```
 
-Response `204` with an empty body.
+### Response
 
-### Error responses
+```http
+204 No Content
+```
 
-All errors use the same shape (`success: false` plus a `message`).
+The response body is empty.
 
-| Status | Case                                         | Example body                                                                   |
-|--------|----------------------------------------------|--------------------------------------------------------------------------------|
-| 401    | Missing or invalid token / wrong credentials | `{"success": false, "message": "Unauthenticated."}`                            |
-| 403    | Normal user tries to reopen a completed task | `{"success": false, "message": "Only a manager or admin can reopen a completed task."}` |
-| 404    | Task does not exist or belongs to another company | `{"success": false, "message": "Resource not found."}`                    |
-| 422    | Validation failed                            | see below                                                                      |
+---
 
-Validation error (`422`):
+# Validation
+
+Validation errors use the following structure:
 
 ```json
 {
     "success": false,
     "message": "Validation failed.",
     "errors": {
-        "status": ["The selected status is invalid."],
-        "assigned_to": ["The assigned user must belong to your company."]
+        "status": [
+            "The selected status is invalid."
+        ],
+        "assigned_to": [
+            "The assigned user must belong to your company."
+        ]
     }
 }
 ```
 
-## Multi-tenant behavior
+HTTP status:
 
-- The tenant is always taken from the authenticated user (`$request->user()->company_id`). The request body is never trusted for `company_id`; it is not even a fillable attribute on `Task`.
-- Every task query (list, show, update, delete) is filtered with `where('company_id', <user's company>)`.
-- A task from another company is reported as `404 Not Found`, so its existence is not revealed.
-- `assigned_to` is validated with an `exists` rule that is limited to users of the authenticated user's company. Assigning to a user of another company returns `422`.
+```http
+422 Unprocessable Entity
+```
 
-## Business rules
+---
 
-- When a task becomes `completed`, `completed_at` is set to the current time by the server. A `completed_at` value sent by the client is ignored.
-- When a completed task is changed to `pending` or `in_progress`, `completed_at` is cleared.
-- Only users with the role `manager` or `admin` can reopen a completed task. Other users receive `403 Forbidden`. Other fields of a completed task can still be edited as long as its status stays `completed`.
-- User roles are `user` (default), `manager` and `admin`, stored in the `users.role` column.
+# Multi-Tenant Architecture
 
-## Assumptions
+The API strictly isolates data between companies.
 
-- Users are created by an administrator (for example with Tinker); there is no registration endpoint.
-- `assigned_to` is optional; a task can be unassigned by sending `null`.
-- `PUT` requires `title`; all other fields are optional on both `PUT` and `PATCH`. `PATCH` accepts any subset of fields.
-- Tokens are created on every login and do not expire unless `SANCTUM_TOKEN_EXPIRATION` is set.
-- Sorting by `priority` and `status` follows the order of the database enum values (`low < medium < high`, `pending < in_progress < completed`), which is how MySQL orders `ENUM` columns.
-- `DELETE` returns `204` with no body, so it has no JSON envelope.
+### Tenant Identification
 
-## Architectural decisions
+The tenant is determined from the authenticated user:
 
-- Plain Laravel structure: controllers, Form Requests, an API Resource and Eloquent models.
-- A single `TaskService` holds the non-trivial task logic (tenant-scoped queries, filtering and sorting, the completed/reopen rules). Controllers stay thin.
-- Authorization is done directly through the authenticated user's `company_id` and `role`, without policies or gates.
-- Sort fields, status values and priority values are validated against fixed lists, so request input is never used directly as a column name.
-- JSON error handling for `api/*` routes is configured in `bootstrap/app.php`, so every error has the same structure and internal exceptions are not exposed when `APP_DEBUG=false`.
-#   t a s k  
- 
+```php
+$request->user()->company_id
+```
+
+The API never trusts `company_id` from the request body.
+
+### Task Isolation
+
+Every task operation is scoped to the authenticated user's company:
+
+```php
+where('company_id', $user->company_id)
+```
+
+This applies to:
+
+* Listing tasks
+* Showing a task
+* Updating a task
+* Deleting a task
+
+### Cross-Tenant Access
+
+If a user attempts to access a task belonging to another company:
+
+```http
+404 Not Found
+```
+
+Response:
+
+```json
+{
+    "success": false,
+    "message": "Resource not found."
+}
+```
+
+This prevents leaking information about resources belonging to other tenants.
+
+---
+
+# Task Assignment
+
+The `assigned_to` field is optional.
+
+A task can be unassigned by sending:
+
+```json
+{
+    "assigned_to": null
+}
+```
+
+When assigning a task, the selected user must belong to the authenticated user's company.
+
+For example:
+
+```text
+Company A user → can assign tasks only to Company A users
+Company B user → can assign tasks only to Company B users
+```
+
+Assigning a user from another company returns:
+
+```http
+422 Unprocessable Entity
+```
+
+---
+
+# Business Rules
+
+## Task Completion
+
+When a task changes to:
+
+```text
+completed
+```
+
+the server automatically sets:
+
+```text
+completed_at = current timestamp
+```
+
+Any `completed_at` value sent by the client is ignored.
+
+---
+
+## Reopening Completed Tasks
+
+A completed task can only be reopened by:
+
+* `admin`
+* `manager`
+
+Reopening means changing the status from:
+
+```text
+completed
+```
+
+to:
+
+```text
+pending
+```
+
+or:
+
+```text
+in_progress
+```
+
+If a normal `user` attempts this operation:
+
+```http
+403 Forbidden
+```
+
+Response:
+
+```json
+{
+    "success": false,
+    "message": "Only a manager or admin can reopen a completed task."
+}
+```
+
+---
+
+## Completed Timestamp
+
+When a completed task is reopened:
+
+```text
+completed_at = null
+```
+
+Other fields of a completed task can still be edited as long as the status remains:
+
+```text
+completed
+```
+
+---
+
+# User Roles
+
+The system supports three roles:
+
+| Role      | Description                     |
+| --------- | ------------------------------- |
+| `user`    | Standard user                   |
+| `manager` | Can reopen completed tasks      |
+| `admin`   | Full task management privileges |
+
+The default role is:
+
+```text
+user
+```
+
+---
+
+# Error Responses
+
+All API errors follow a consistent JSON structure.
+
+| Status | Case                                              | Example                                                |
+| ------ | ------------------------------------------------- | ------------------------------------------------------ |
+| `401`  | Missing/invalid token                             | `Unauthenticated.`                                     |
+| `401`  | Invalid login credentials                         | `Invalid credentials.`                                 |
+| `403`  | User not allowed to reopen task                   | `Only a manager or admin can reopen a completed task.` |
+| `404`  | Task does not exist or belongs to another company | `Resource not found.`                                  |
+| `422`  | Validation failure                                | `Validation failed.`                                   |
+| `204`  | Successful deletion                               | Empty response                                         |
+
+Example:
+
+```json
+{
+    "success": false,
+    "message": "Unauthenticated."
+}
+```
+
+---
+
+# Architectural Decisions
+
+The project follows a clean and simple Laravel architecture.
+
+## Controllers
+
+Controllers are kept thin and are responsible mainly for:
+
+* Receiving requests
+* Calling the service layer
+* Returning API responses
+
+---
+
+## Form Requests
+
+Form Requests handle:
+
+* Validation
+* Input rules
+* Authorization-related request validation
+
+---
+
+## API Resources
+
+API Resources are responsible for transforming task data into a consistent JSON structure.
+
+---
+
+## Task Service
+
+The `TaskService` contains the main business logic, including:
+
+* Tenant-scoped task queries
+* Filtering
+* Searching
+* Sorting
+* Pagination
+* Task creation
+* Task updates
+* Completion logic
+* Reopen authorization rules
+
+This keeps the controllers clean and easier to maintain.
+
+---
+
+## Authorization
+
+Authorization is handled directly through:
+
+```php
+$user->company_id
+```
+
+and:
+
+```php
+$user->role
+```
+
+The project intentionally does not use Policies or Gates.
+
+---
+
+# Security Considerations
+
+The API follows several important security principles:
+
+### Tenant Isolation
+
+Users cannot access tasks outside their company.
+
+### No Client-Controlled Tenant ID
+
+`company_id` is never accepted from the request.
+
+### Secure Task Assignment
+
+`assigned_to` is restricted to users belonging to the same company.
+
+### Protected Routes
+
+Task endpoints require:
+
+```text
+auth:sanctum
+```
+
+### Fixed Sorting Fields
+
+The API only allows predefined sorting fields:
+
+```text
+created_at
+due_date
+priority
+status
+```
+
+User input is never directly used as a database column name.
+
+### Consistent Error Responses
+
+API errors use a consistent JSON structure, while internal exception details are hidden when:
+
+```env
+APP_DEBUG=false
+```
+
+---
+
+# Assumptions
+
+* Users are created by an administrator.
+* There is no public registration endpoint.
+* Tokens are created on every successful login.
+* Tokens do not expire unless `SANCTUM_TOKEN_EXPIRATION` is configured.
+* `assigned_to` is optional.
+* `assigned_to: null` removes the assignment.
+* `PUT` requires `title`; all other fields are optional.
+* `PATCH` accepts any subset of allowed fields.
+* Sorting by `priority` and `status` follows the MySQL `ENUM` ordering.
+
+### ENUM Ordering
+
+Priority:
+
+```text
+low < medium < high
+```
+
+Status:
+
+```text
+pending < in_progress < completed
+```
+
+---
+
+# Project Structure
+
+The main architecture is organized around standard Laravel components:
+
+```text
+app/
+├── Http/
+│   ├── Controllers/
+│   │   └── Api/
+│   ├── Requests/
+│   └── Resources/
+│
+├── Models/
+│   ├── Company.php
+│   ├── Task.php
+│   └── User.php
+│
+└── Services/
+    └── TaskService.php
+
+database/
+└── migrations/
+
+routes/
+└── api.php
+
+bootstrap/
+└── app.php
+```
+
+---
+
+# API Flow
+
+The general request flow is:
+
+```text
+Client
+   ↓
+API Route
+   ↓
+Sanctum Authentication
+   ↓
+Form Request Validation
+   ↓
+Controller
+   ↓
+TaskService
+   ↓
+Eloquent / MySQL
+   ↓
+API Resource
+   ↓
+JSON Response
+```
+
+---
+
+# Example Multi-Tenant Scenario
+
+### Company A
+
+```text
+Alice - admin
+Adam  - user
+```
+
+### Company B
+
+```text
+Bella - manager
+Ben   - user
+```
+
+Alice can access:
+
+```text
+Company A tasks
+```
+
+but cannot access:
+
+```text
+Company B tasks
+```
+
+Likewise, Bella can only access:
+
+```text
+Company B tasks
+```
+
+This isolation is enforced server-side and cannot be bypassed by sending a different `company_id` in the request.
+
+---
+
+# License
+
+This project was created as a Laravel backend/API assignment demonstrating:
+
+* REST API development
+* Laravel Sanctum authentication
+* Multi-tenancy
+* Eloquent relationships
+* Request validation
+* Service Layer architecture
+* API Resources
+* Pagination
+* Filtering and sorting
+* Role-based business rules
+* Secure tenant isolation
